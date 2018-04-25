@@ -217,6 +217,15 @@ public class proxy : IHttpHandler {
                 context.Application["rateMap_cleanup_counter"] = cnt;
             }
         }
+		
+        //miclan 2018-04-18: optionally replace a metadata request
+        //this allows us to use an ESRI base map and customize the extents
+        //such that it focuses on our area of interest without modifying the 
+        //vendors application, if not set in the config this does nothing
+        if (serverUrl.Replacements != null && serverUrl.Replacements.Length > 0)
+        {
+            
+        }
 
         //readying body (if any) of POST request
         byte[] postBody = readRequestPostBody(context);
@@ -1163,6 +1172,8 @@ public class ServerUrl {
     string tokenParamName;
     string rateLimit;
     string rateLimitPeriod;
+	
+    Replacement[] replacements;
 
     private ServerUrl()
     {
@@ -1246,4 +1257,67 @@ public class ServerUrl {
         get { return string.IsNullOrEmpty(rateLimitPeriod)? 60 : int.Parse(rateLimitPeriod); }
         set { rateLimitPeriod = value.ToString(); }
     }
+
+    [XmlArray("replacements")]
+    [XmlArrayItem("replacement")]
+    public Replacement[] Replacements
+    {
+        get { return this.replacements; }
+        set
+        {
+            this.replacements = value;
+        }
+    }
+}
+
+public class Replacement
+{
+    string url;
+    string file;
+    string method;
+    string contentType;
+	
+    public Replacement()
+    {
+
+    }
+
+    [XmlAttribute("url")]
+    public string Url
+    {
+        get { return url; }
+        set { url = value; }
+    }
+
+    [XmlAttribute("method")]
+    public string Method
+    {
+        get { return method; }
+        set { method = value; }
+    }
+
+    [XmlAttribute("file")]
+    public string File
+    {
+        get { return file; }
+        set { file = value; }
+    }
+
+    [XmlAttribute("contentType")]
+    public string ContentType
+	{
+        get { return contentType; }
+        set { contentType = value; }
+    }
+
+    public bool isMatch(string method, string uri)
+    {
+        if (string.IsNullOrEmpty(method) || string.IsNullOrEmpty(uri))
+        {
+            return false;
+        }
+
+        return method.Equals(this.method, StringComparison.InvariantCultureIgnoreCase) &&
+               uri.Equals(this.url, StringComparison.InvariantCultureIgnoreCase);
+	}
 }
